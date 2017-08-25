@@ -528,21 +528,27 @@ public final class Timber {
       if (message != null && message.length() == 0) {
         message = null;
       }
-      if (message == null) {
-        if (t == null) {
-          return; // Swallow message if it's null and there's no throwable.
-        }
-        message = getStackTraceString(t);
-      } else {
-        if (args.length > 0) {
-          message = formatMessage(message, args);
-        }
-        if (t != null) {
-          message += "\n" + getStackTraceString(t);
-        }
+      if (message == null && t == null) {
+        return; // Swallow message if it's null and there's no throwable.
+      }
+      if (message != null && args.length > 0) {
+        message = formatMessage(message, args);
       }
 
-      log(priority, tag, message, t);
+      String preparedMessage = prepareMessage(t, message);
+      log(priority, tag, preparedMessage, t);
+    }
+
+    /** Prepares the non-null message that will be logged from a throwable and original message. Only one of these two can be null at the same time. */
+    protected String prepareMessage(Throwable t, String message) {
+      if (t == null) {
+        return message;
+      }
+      if (message == null) {
+        return getStackTraceString(t);
+      } else {
+        return message + "\n\n" + getStackTraceString(t);
+      }
     }
 
     /**
@@ -552,7 +558,7 @@ public final class Timber {
       return String.format(message, args);
     }
 
-    private String getStackTraceString(Throwable t) {
+    protected String getStackTraceString(Throwable t) {
       // Don't replace this with Log.getStackTraceString() - it hides
       // UnknownHostException, which is not what we want.
       StringWriter sw = new StringWriter(256);
